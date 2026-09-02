@@ -11,63 +11,50 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 编译 framework
-        run: |
-          set -e
-          mkdir -p build/NovaCoreKit.framework/Headers
-          mkdir -p build/NovaCoreKit.framework/Modules
+      - name: 列出文件
+        run: ls -la
 
-          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
-          echo "SDK: $SDK_PATH"
+      - name: 检查SDK
+        run: |
+          xcrun --sdk iphoneos --show-sdk-path
+          xcrun --find clang
+
+      - name: 编译
+        run: |
+          mkdir -p output/NovaCoreKit.framework/Headers
+          mkdir -p output/NovaCoreKit.framework/Modules
 
           xcrun clang -arch arm64 \
-            -isysroot "$SDK_PATH" \
+            -isysroot $(xcrun --sdk iphoneos --show-sdk-path) \
             -miphoneos-version-min=12.0 \
             -fobjc-arc \
-            -fmodules \
             -I . \
-            -framework Foundation \
-            -framework UIKit \
-            -framework Security \
+            -framework Foundation -framework UIKit -framework Security \
             -dynamiclib \
             -install_name @rpath/NovaCoreKit.framework/NovaCoreKit \
-            -o build/NovaCoreKit.framework/NovaCoreKit \
-            NovaCoreKitCrypto.m \
-            NovaCoreKitDevice.m \
-            NovaCoreKitKeychain.m \
-            NovaCoreKitUI.m
+            -o output/NovaCoreKit.framework/NovaCoreKit \
+            NovaCoreKitCrypto.m NovaCoreKitDevice.m NovaCoreKitKeychain.m NovaCoreKitUI.m \
+            2>&1 | tee build.log
 
-          echo "编译成功，复制文件..."
-          cp NovaCoreKit.h build/NovaCoreKit.framework/Headers/
-          cp NovaCoreKitCrypto.h build/NovaCoreKit.framework/Headers/
-          cp NovaCoreKitDevice.h build/NovaCoreKit.framework/Headers/
-          cp NovaCoreKitKeychain.h build/NovaCoreKit.framework/Headers/
-          cp NovaCoreKitUI.h build/NovaCoreKit.framework/Headers/
-          cp Info.plist build/NovaCoreKit.framework/
-          cp PrivacyInfo.xcprivacy build/NovaCoreKit.framework/
+          echo "=== 编译完成，检查产物 ==="
+          ls -la output/NovaCoreKit.framework/
+          file output/NovaCoreKit.framework/NovaCoreKit
 
-          cat > build/NovaCoreKit.framework/Modules/module.modulemap << 'EOF'
-framework module NovaCoreKit {
-    umbrella header "NovaCoreKit.h"
-    export *
-    module * { export * }
-}
-EOF
-
-          echo "签名..."
-          codesign --force --deep --sign - build/NovaCoreKit.framework/NovaCoreKit
-
-          echo "完成！"
-          ls -la build/NovaCoreKit.framework/
-          file build/NovaCoreKit.framework/NovaCoreKit
-
-      - name: 打包
+      - name: 组装framework
         run: |
-          cd build
-          tar -czf ../NovaCoreKit.framework.tar.gz NovaCoreKit.framework/
+          cp *.h output/NovaCoreKit.framework/Headers/
+          cp Info.plist output/NovaCoreKit.framework/
+          cp PrivacyInfo.xcprivacy output/NovaCoreKit.framework/
+          printf 'framework module NovaCoreKit {\n    umbrella header "NovaCoreKit.h"\n    export *\n    module * { export * }\n}\n' > output/NovaCoreKit.framework/Modules/module.modulemap
+          ls -laR output/NovaCoreKit.framework/
+
+      - name: 打包下载
+        run: |
+          cd output
+          zip -r ../NovaCoreKit.framework.zip NovaCoreKit.framework/
 
       - name: 上传产物
         uses: actions/upload-artifact@v4
         with:
           name: NovaCoreKit.framework
-          path: NovaCoreKit.framework.tar.gz
+          path: NovaCoreKit.framework.zip
