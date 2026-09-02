@@ -11,7 +11,8 @@
 + (void)showToast:(NSString *)message onView:(UIView *)view duration:(NSTimeInterval)duration position:(NovaCoreKitToastPosition)position {
     if (!message || message.length == 0) return;
     
-    UIView *targetView = view ?: [self keyWindow];
+    UIWindow *window = [self keyWindow];
+    UIView *targetView = view ?: window;
     if (!targetView) return;
     
     UILabel *toast = [[UILabel alloc] init];
@@ -77,15 +78,15 @@
 @implementation NovaCoreKitActivity
 
 + (void)showWithText:(NSString *)text {
-    UIView *targetView = [NovaCoreKitToast keyWindow];
-    if (!targetView) return;
+    UIWindow *window = [NovaCoreKitToast keyWindow];
+    if (!window) return;
     
-    UIView *bg = [[UIView alloc] initWithFrame:targetView.bounds];
+    UIView *bg = [[UIView alloc] initWithFrame:window.bounds];
     bg.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.4];
     bg.tag = 99991;
     
     UIView *box = [[UIView alloc] initWithFrame:CGRectMake(0, 0, 120, 100)];
-    box.center = targetView.center;
+    box.center = window.center;
     box.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.8];
     box.layer.cornerRadius = 10;
     
@@ -102,12 +103,12 @@
     [box addSubview:label];
     
     [bg addSubview:box];
-    [targetView addSubview:bg];
+    [window addSubview:bg];
 }
 
 + (void)hide {
-    UIView *targetView = [NovaCoreKitToast keyWindow];
-    UIView *bg = [targetView viewWithTag:99991];
+    UIWindow *window = [NovaCoreKitToast keyWindow];
+    UIView *bg = [window viewWithTag:99991];
     if (bg) {
         [UIView animateWithDuration:0.2 animations:^{
             bg.alpha = 0;
@@ -129,7 +130,8 @@
         if (okHandler) okHandler();
     }]];
     
-    UIViewController *rootVC = [NovaCoreKitToast keyWindow].rootViewController;
+    UIWindow *window = [NovaCoreKitToast keyWindow];
+    UIViewController *rootVC = window.rootViewController;
     while (rootVC.presentedViewController) {
         rootVC = rootVC.presentedViewController;
     }
@@ -145,7 +147,8 @@
         if (okHandler) okHandler();
     }]];
     
-    UIViewController *rootVC = [NovaCoreKitToast keyWindow].rootViewController;
+    UIWindow *window = [NovaCoreKitToast keyWindow];
+    UIViewController *rootVC = window.rootViewController;
     while (rootVC.presentedViewController) {
         rootVC = rootVC.presentedViewController;
     }
