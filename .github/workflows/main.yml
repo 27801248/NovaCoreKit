@@ -11,14 +11,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 列出文件
-        run: ls -la
-
-      - name: 检查SDK
-        run: |
-          xcrun --sdk iphoneos --show-sdk-path
-          xcrun --find clang
-
       - name: 编译
         run: |
           mkdir -p output/NovaCoreKit.framework/Headers
@@ -33,27 +25,24 @@ jobs:
             -dynamiclib \
             -install_name @rpath/NovaCoreKit.framework/NovaCoreKit \
             -o output/NovaCoreKit.framework/NovaCoreKit \
-            NovaCoreKitCrypto.m NovaCoreKitDevice.m NovaCoreKitKeychain.m NovaCoreKitUI.m \
-            2>&1 | tee build.log
+            NovaCoreKitCrypto.m NovaCoreKitDevice.m NovaCoreKitKeychain.m NovaCoreKitUI.m
 
-          echo "=== 编译完成，检查产物 ==="
           ls -la output/NovaCoreKit.framework/
           file output/NovaCoreKit.framework/NovaCoreKit
 
-      - name: 组装framework
+      - name: 组装
         run: |
           cp *.h output/NovaCoreKit.framework/Headers/
           cp Info.plist output/NovaCoreKit.framework/
           cp PrivacyInfo.xcprivacy output/NovaCoreKit.framework/
           printf 'framework module NovaCoreKit {\n    umbrella header "NovaCoreKit.h"\n    export *\n    module * { export * }\n}\n' > output/NovaCoreKit.framework/Modules/module.modulemap
-          ls -laR output/NovaCoreKit.framework/
 
-      - name: 打包下载
+      - name: 打包
         run: |
           cd output
           zip -r ../NovaCoreKit.framework.zip NovaCoreKit.framework/
 
-      - name: 上传产物
+      - name: 上传
         uses: actions/upload-artifact@v4
         with:
           name: NovaCoreKit.framework
