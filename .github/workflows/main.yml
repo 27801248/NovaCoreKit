@@ -1,0 +1,73 @@
+name: Build NovaCoreKit
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 编译 framework
+        run: |
+          set -e
+          mkdir -p build/NovaCoreKit.framework/Headers
+          mkdir -p build/NovaCoreKit.framework/Modules
+
+          SDK_PATH=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "SDK: $SDK_PATH"
+
+          xcrun clang -arch arm64 \
+            -isysroot "$SDK_PATH" \
+            -miphoneos-version-min=12.0 \
+            -fobjc-arc \
+            -fmodules \
+            -I . \
+            -framework Foundation \
+            -framework UIKit \
+            -framework Security \
+            -dynamiclib \
+            -install_name @rpath/NovaCoreKit.framework/NovaCoreKit \
+            -o build/NovaCoreKit.framework/NovaCoreKit \
+            NovaCoreKitCrypto.m \
+            NovaCoreKitDevice.m \
+            NovaCoreKitKeychain.m \
+            NovaCoreKitUI.m
+
+          echo "编译成功，复制文件..."
+          cp NovaCoreKit.h build/NovaCoreKit.framework/Headers/
+          cp NovaCoreKitCrypto.h build/NovaCoreKit.framework/Headers/
+          cp NovaCoreKitDevice.h build/NovaCoreKit.framework/Headers/
+          cp NovaCoreKitKeychain.h build/NovaCoreKit.framework/Headers/
+          cp NovaCoreKitUI.h build/NovaCoreKit.framework/Headers/
+          cp Info.plist build/NovaCoreKit.framework/
+          cp PrivacyInfo.xcprivacy build/NovaCoreKit.framework/
+
+          cat > build/NovaCoreKit.framework/Modules/module.modulemap << 'EOF'
+framework module NovaCoreKit {
+    umbrella header "NovaCoreKit.h"
+    export *
+    module * { export * }
+}
+EOF
+
+          echo "签名..."
+          codesign --force --deep --sign - build/NovaCoreKit.framework/NovaCoreKit
+
+          echo "完成！"
+          ls -la build/NovaCoreKit.framework/
+          file build/NovaCoreKit.framework/NovaCoreKit
+
+      - name: 打包
+        run: |
+          cd build
+          tar -czf ../NovaCoreKit.framework.tar.gz NovaCoreKit.framework/
+
+      - name: 上传产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaCoreKit.framework
+          path: NovaCoreKit.framework.tar.gz
