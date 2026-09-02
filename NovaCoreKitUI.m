@@ -62,7 +62,7 @@
     }];
 }
 
-+ (UIView *)keyWindow {
++ (UIWindow *)keyWindow {
     UIApplication *app = [UIApplication sharedApplication];
     if ([app.delegate respondsToSelector:@selector(window)]) {
         return app.delegate.window;
