@@ -9,7 +9,6 @@
 static NSString * const kNovaCoreKitDefaultService = @"com.novacorekit.sdk";
 
 @interface NovaCoreKitKeychain ()
-@property (nonatomic, copy) NSString *serviceName;
 @end
 
 @implementation NovaCoreKitKeychain
